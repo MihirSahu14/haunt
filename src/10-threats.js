@@ -139,30 +139,55 @@ function victimsIn(roomId) {
 // Q: cheap low fear, no suspicion
 function threatWhisper() {
   if (!threat.whisper) {
-    pop('locked: finish a diary task', ghost.x, ghost.y - 50, 14, '#8a8f80', 1.2);
+    toast('Q is locked. Make the Kid drop the teddy to unlock it.');
     return;
   }
   const r = roomAt(ghost.x, ghost.y);
-  if (!r || threat.whisperCool > 0 || game.energy < 8) return;
+  if (!r) {
+    toast('Q: float into a room first.');
+    return;
+  }
+  if (threat.whisperCool > 0) {
+    toast('Q: recharging...');
+    return;
+  }
+  if (game.energy < 8) {
+    toast('Q: needs 8 ecto.');
+    return;
+  }
   game.energy -= 8;
   threat.whisperCool = 2.5;
   if (typeof whisper === 'function') whisper(1.6, 0.25);
   const v = victimsIn(r.id);
+  if (v.length === 0) toast('You whisper. Nobody is here to hear it.');
   for (let i = 0; i < v.length; i++) {
     v[i].fear = Math.min(99, v[i].fear + 8);
     v[i].scaredAgo = 0;
+    v[i].bangT = 0.8;                                   // visible flinch
     game.energy = Math.min(100, game.energy + 8 * 0.6);
+    pop('+8', v[i].x, v[i].y - v[i].h - 30, 16, '#c6cfba', 1);
   }
 }
 
 // R: big fear to everyone in room, +25 suspicion
 function threatManifest() {
   if (!threat.manifest) {
-    pop('locked: finish a diary task', ghost.x, ghost.y - 50, 14, '#8a8f80', 1.2);
+    toast('R is locked. Chain a x3 combo to unlock it.');
     return;
   }
   const r = roomAt(ghost.x, ghost.y);
-  if (!r || game.energy < 45 || threat.manifestCool > 0) return;
+  if (!r) {
+    toast('R: float into a room first.');
+    return;
+  }
+  if (threat.manifestCool > 0) {
+    toast('R: recharging (' + Math.ceil(threat.manifestCool) + 's).');
+    return;
+  }
+  if (game.energy < 45) {
+    toast('R: needs 45 ecto.');
+    return;
+  }
   game.energy -= 45;
   threat.manifestCool = 20;
   addSuspicion(15);
@@ -429,24 +454,31 @@ function drawThreatHUD(g) {
   if (threat.showObj) {
     const act = activeObjectives();
     label(g, 'DIARY  [TAB]', 24, H - 110, 11, '#95a493', 'left');
-    for (let i = 0; i < act.length; i++) label(g, '- ' + act[i].text, 24, H - 90 + i * 18, 12, '#c6cfba', 'left');
-    let keysTxt = '';
-    if (threat.whisper) keysTxt += 'Q whisper   ';
-    if (threat.manifest) keysTxt += 'R manifest';
-    if (keysTxt) label(g, keysTxt, 24, H - 126, 11, '#c9b56a', 'left');
+    for (let i = 0; i < act.length; i++) {
+      let tag = '';
+      if (act[i].reward === 'whisper') tag = '  (unlocks Q)';
+      if (act[i].reward === 'manifest') tag = '  (unlocks R)';
+      label(g, '- ' + act[i].text + tag, 24, H - 90 + i * 18, 12, '#c6cfba', 'left');
+    }
+    const q = threat.whisper ? (threat.whisperCool > 0 ? 'Q whisper ..' : 'Q whisper') : 'Q locked';
+    const rr2 = threat.manifest ? (threat.manifestCool > 0 ? 'R manifest ' + Math.ceil(threat.manifestCool) + 's' : 'R manifest') : 'R locked';
+    label(g, q + '    ' + rr2, 24, H - 130, 12, threat.whisper || threat.manifest ? '#c9b56a' : '#95a493', 'left');
   }
-  // toasts, bottom-center, newest lowest
+  // toasts, center (above the tutorial band), newest lowest
   for (let i = 0; i < threat.toasts.length; i++) {
     const t = threat.toasts[i];
     const a = Math.min(1, t.t / 0.2, (TOAST_T - t.t) / 0.8);
     g.globalAlpha = clamp(a, 0, 1);
-    label(g, t.text, W / 2, 628 - (threat.toasts.length - 1 - i) * 24, 16, t.color, 'center');
+    const tw2 = measurePixelText(t.text, 2) + 24;      // solid slab so it never mixes with the diary
+    const ty2 = 470 - (threat.toasts.length - 1 - i) * 30;
+    rect(g, Math.round(W / 2 - tw2 / 2), ty2 - 14, Math.round(tw2), 28, 'rgba(8,11,8,0.92)');
+    label(g, t.text, W / 2, ty2, 16, t.color, 'center');
   }
   g.globalAlpha = 1;
   if (threat.paused) {
     g.fillStyle = 'rgba(4,6,4,0.86)';
     g.fillRect(0, 0, W, H);
-    const lines = ['PAUSED', '', 'WASD / click   drift', 'E / click object   haunt (costs ecto)', 'Q   whisper (unlock)', 'R   manifest (unlock)', 'TAB   diary', 'ESC   resume', '', 'Fear feeds you. Empty rooms starve you.', 'Repeat a trick and they stop flinching.', 'Too loud and they call someone.'];
+    const lines = ['PAUSED', '', 'WASD / click   drift', 'E / click object   haunt (costs ecto)', 'Q   whisper: small scare, no suspicion (task: Kid drops teddy)', 'R   manifest: huge scare, loud (task: x3 combo)', 'TAB   diary', 'ESC   resume', '', 'Fear feeds you. Empty rooms starve you.', 'Repeat a trick and they stop flinching.', 'Too loud and they call someone.'];
     for (let i = 0; i < lines.length; i++) label(g, lines[i], W / 2, 180 + i * 28, i === 0 ? 30 : 16, i === 0 ? '#a01818' : '#c6cfba', 'center');
   }
 }
