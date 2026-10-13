@@ -1,8 +1,8 @@
-# You Are the Haunting
+# Haunt
 
 A pixel-art horror game in the browser. You are the ghost. Scare the family out of the house before dawn.
 
-**Play:** https://mihirsahu14.github.io/you-are-the-haunting/
+**Play:** https://mihirsahu14.github.io/haunt/
 
 ## Controls
 

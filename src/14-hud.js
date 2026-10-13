@@ -273,7 +273,7 @@ function drawTitle() {
     g.fillRect(rx, ry, 4, 12);
   }
   rect(g, 0, 0, W, H, 'rgba(0,0,0,0.35)');
-  shakyText(g, 'YOU ARE THE HAUNTING', W / 2, 200, 64, '#b9c4b0');
+  shakyText(g, 'HAUNT', W / 2, 196, 96, '#b9c4b0');
   label(g, 'They moved into your house.', W / 2, 270, 16, UI_DIM);
   // blinking prompt
   if (Math.floor(globalT * 1.6) % 2 === 0) label(g, 'click to begin', W / 2, 350, 24, UI_LAMP);
