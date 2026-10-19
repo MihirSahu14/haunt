@@ -19,18 +19,21 @@ const door = { open: 0 };
 const keys = {};
 const SCARE_CD = 4;              // seconds per object
 const COMBO_T = typeof COMBO_WINDOW === 'number' ? COMBO_WINDOW : 3;   // combo window (matches HUD bar)
-const FEAR_BASE = 19;            // fear per fresh scare
+const FEAR_BASE = (window.__playbench?.overrides ?? {}).fear_base ?? 19;     // fear per fresh scare (playbench knob)
 const COMBO_MAX = 1.4;           // combo multiplier cap
-const JS_GAP = 20;
-const FEAR_DECAY = 0.5;          // fear lost per second once calm (x2 with company)
+const JS_GAP = 20;               // min seconds between full-screen jump scares
+const FEAR_DECAY = (window.__playbench?.overrides ?? {}).fear_decay ?? 0.5; // fear lost per second once calm (x2 with company) (playbench knob: family courage)
 const LONE_K = 0.05;             // extra fear per family member already gone
 const NERVE_T = 5;               // seconds a victim stays numb after a scare
 const NERVE_K = 0.4;             // fear multiplier while numb
 const SUSP_SCARE = 3;            // suspicion per scare that lands
-const SUSP_EMPTY = 10;           // suspicion for haunting an empty room (spam tax)               // min seconds between full-screen jump scares
+const SUSP_EMPTY = 10;           // suspicion for haunting an empty room (spam tax)
 const GHOST_SPD = 400;           // ghost speed
 const ECTO_REGEN = 1.5;          // passive ecto per second
 const ECTO_PER_FEAR = 0.5;       // ecto gained per fear inflicted
+const SCARE_HOLD = (window.__playbench?.overrides ?? {}).scare_hold ?? 3;   // seconds a landed scare roots the victim (playbench knob)
+const EXO_CALM = (window.__playbench?.overrides ?? {}).exo_calm ?? 1;   // fear decay multiplier while the exorcist is in the house (playbench knob). 1 = off: 1.5 cut careful-bot wins 36/60 -> 26/60; revisit after a human playtest
+const GHOST_TOP = HUD_BAND + 48;  // highest ghost y: the sprite stays below the top HUD band
 function worldW() { return typeof WORLD_W !== 'undefined' ? WORLD_W : W; }
 function worldH() { return typeof WORLD_H !== 'undefined' ? WORLD_H : H; }
 function ghostStart() {
@@ -41,7 +44,7 @@ function ghostStart() {
 function resetGame() {
   game = {
     time: 0, energy: 100, combo: 0, lastScare: -99, freeze: 0, jsT: 0, js: null, jsQueue: [],
-    lastJS: -99, jsLog: [], winKind: null, lastType: null,
+    lastJS: -99, jsLog: [], winKind: null, comboTypes: [],
     firstJS: false, creepyT: 22, winT: 0, lowFlash: 0, creakT: 3, stareDark: false,
   };
   family = makeFamily();
@@ -133,13 +136,11 @@ function terrify(m) {
   if (typeof threatEvent === 'function') threatEvent({ kind: 'terrify', m: m });
   // too soon after the last face: in-world scream, they still bolt
   if (game.js || game.time - game.lastJS < JS_GAP) {
-    m.state = 'flee';
-    m.path = pathOut(m);
+    startFlee(m);
     scream(m.pitch, 0, 0.35);
     shake = Math.max(shake, 18);
     abBoost = Math.max(abBoost, 8);
     if (typeof addBlood === 'function') addBlood(m.x + rand(-30, 30), m.y - 4, 14, 'drip');
-    if (typeof toast === 'function') toast(m.name + ' screams and runs', '#a01818');
     return;
   }
   m.state = 'terrified';
@@ -147,6 +148,13 @@ function terrify(m) {
   game.jsLog.push(game.time);
   game.jsQueue.push(m);
   nextJumpscare();
+}
+
+// member bolts for the door; the HUD toasts it and points an arrow at them
+function startFlee(m) {
+  m.state = 'flee';
+  m.path = pathOut(m);
+  if (typeof toast === 'function') toast(m.name + ' is running for the door!', '#e0201f');
 }
 
 // start the next queued jump scare
@@ -168,11 +176,7 @@ function nextJumpscare() {
 function endJumpscare() {
   const m = game.js;
   game.js = null;
-  if (m) {
-    m.state = 'flee';
-    m.path = pathOut(m);
-    pop(m.name + ' runs for the door', m.x, m.y - m.h - 60, 18, '#b9bfae', 1.8);
-  }
+  if (m) startFlee(m);
   if (game.jsQueue.length > 0) nextJumpscare();
 }
 
@@ -228,6 +232,7 @@ function updateMember(m, dt) {
       const orm = roomAt(o.x, o.y - 20);
       if (orm && orm.id === r.id) rate = FEAR_DECAY * 2;
     }
+    if (typeof threat !== 'undefined' && threat && threat.hunter && threat.hunter.state !== 'flee') rate *= EXO_CALM;   // his presence steadies them
     m.fear = Math.max(0, m.fear - rate * dt);
   }
   if (m.state === 'terrified') return;
@@ -278,12 +283,12 @@ const COMBO_COLS = ['#d2dcc6', '#d2dcc6', '#dcc870', '#c0181c', '#e0201f'];   //
 
 function triggerObject(o) {
   if (o.cool > 0) {
-    pop('not yet...', o.x, o.y - o.h - 10, 14, '#6a6f62', 0.8);
+    pop('not yet...', o.x, o.y + 36, 14, '#6a6f62', 0.8);   // failure pops sit under the object; the cost tag owns the slot above
     return;
   }
   const cost = typeof threatCost === 'function' ? threatCost(o) : 25;
   if (game.energy < cost) {
-    pop('too weak (' + cost + ')', o.x, o.y - o.h - 10, 14, '#8a1010', 1);
+    pop('too weak (' + cost + ')', o.x, o.y + 36, 14, '#8a1010', 1);
     game.lowFlash = 0.5;
     tone(110, 0.2, 'square', 0.08, 90);
     return;
@@ -305,15 +310,19 @@ function triggerObject(o) {
   }
   if (typeof hunterScare === 'function') hunterScare(o.type, o.room);
   if (victims.length === 0) {
-    pop('...nobody here', o.x, o.y - o.h - 10, 14, '#6a6f62', 1.2);
+    pop('...nobody here', o.x, o.y + 36, 14, '#6a6f62', 1.2);
     if (typeof addSuspicion === 'function') addSuspicion(SUSP_EMPTY);
     return;
   }
-  // combo chain: different tricks inside the window; repeating one breaks it
-  if (game.time - game.lastScare <= COMBO_T && o.type !== game.lastType) game.combo += 1;
-  else game.combo = 1;
+  // combo chain: distinct tricks inside the window; any trick already in the chain (A-B-A) restarts it
+  if (game.time - game.lastScare <= COMBO_T && game.comboTypes.indexOf(o.type) < 0) {
+    game.combo += 1;
+    game.comboTypes.push(o.type);
+  } else {
+    game.combo = 1;
+    game.comboTypes = [o.type];
+  }
   game.lastScare = game.time;
-  game.lastType = o.type;
   const mult = Math.min(COMBO_MAX, 1 + (game.combo - 1) * 0.2);
   if (game.combo >= 2) pop('x' + game.combo, o.x, o.y - o.h - 30, 18 + game.combo * 4, '#a01818', 1.4);
   shake = Math.max(shake, 8 + game.combo * 3);
@@ -347,7 +356,7 @@ function triggerObject(o) {
       terrify(v);
     } else {
       v.state = 'idle';
-      v.idleT = 1.4;
+      v.idleT = SCARE_HOLD;
     }
   }
   game.energy = Math.min(100, game.energy + fearSum * ECTO_PER_FEAR);
@@ -401,7 +410,7 @@ function updateGhost(dt) {
   ghost.vy += (dvy - ghost.vy) * k;
   const px = ghost.x;
   ghost.x = clamp(ghost.x + ghost.vx * dt, 40, worldW() - 40);
-  ghost.y = clamp(ghost.y + ghost.vy * dt, 40, worldH() - 40);
+  ghost.y = clamp(ghost.y + ghost.vy * dt, GHOST_TOP, worldH() - 40);
   if (typeof saltBlock === 'function' && threat) saltBlock(px, ghost.y);
   if (Math.abs(ghost.vx) > 15) ghost.face = ghost.vx > 0 ? 1 : -1;
   trail.push({ x: ghost.x, y: ghost.y + Math.sin(globalT * 3) * 5 });

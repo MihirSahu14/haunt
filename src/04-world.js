@@ -5,7 +5,6 @@
 const WORLD_W = 2560;                   // world width
 const WORLD_H = 1440;                   // world height
 const COST = 20;                        // ecto per scare
-const REGEN = 11;                       // ecto per second
 const COOLDOWN = 4;                     // seconds per object (matches SCARE_CD in 09-game)
 const COMBO_WINDOW = 3;                 // seconds to chain
 const GHOST_SPEED = 400;                // units per second

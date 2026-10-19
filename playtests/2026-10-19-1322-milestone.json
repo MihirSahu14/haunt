@@ -1,0 +1,173 @@
+{
+ "version": 1,
+ "at": "2026-10-19T13:22:54",
+ "mode": "milestone",
+ "engine": "web",
+ "build": ".",
+ "tier": 2,
+ "verdict": "PASS",
+ "summary": "PASS: boots, input works, no crashes, freezes or softlocks in 16 runs (tier 2)",
+ "runs": [
+  {
+   "seed": 1,
+   "bot": "random",
+   "seconds": 60.0,
+   "over": false,
+   "won": false,
+   "time_to_over": null,
+   "final": "0f23f2eaa56e"
+  },
+  {
+   "seed": 1,
+   "bot": "policy",
+   "seconds": 60.0,
+   "over": false,
+   "won": false,
+   "time_to_over": null,
+   "final": "187e87161116"
+  },
+  {
+   "seed": 2,
+   "bot": "random",
+   "seconds": 60.0,
+   "over": false,
+   "won": false,
+   "time_to_over": null,
+   "final": "105d9c03f1b7"
+  },
+  {
+   "seed": 2,
+   "bot": "policy",
+   "seconds": 60.0,
+   "over": false,
+   "won": false,
+   "time_to_over": null,
+   "final": "4104cf31bcf3"
+  },
+  {
+   "seed": 3,
+   "bot": "random",
+   "seconds": 60.0,
+   "over": false,
+   "won": false,
+   "time_to_over": null,
+   "final": "e7a4410720b2"
+  },
+  {
+   "seed": 3,
+   "bot": "policy",
+   "seconds": 60.0,
+   "over": false,
+   "won": false,
+   "time_to_over": null,
+   "final": "b5906ecb3632"
+  },
+  {
+   "seed": 4,
+   "bot": "random",
+   "seconds": 60.0,
+   "over": false,
+   "won": false,
+   "time_to_over": null,
+   "final": "874390b011cc"
+  },
+  {
+   "seed": 4,
+   "bot": "policy",
+   "seconds": 60.0,
+   "over": false,
+   "won": false,
+   "time_to_over": null,
+   "final": "084c30a6966e"
+  },
+  {
+   "seed": 5,
+   "bot": "random",
+   "seconds": 60.0,
+   "over": false,
+   "won": false,
+   "time_to_over": null,
+   "final": "861a09e7de20"
+  },
+  {
+   "seed": 5,
+   "bot": "policy",
+   "seconds": 60.0,
+   "over": false,
+   "won": false,
+   "time_to_over": null,
+   "final": "5dc60703ff08"
+  },
+  {
+   "seed": 6,
+   "bot": "random",
+   "seconds": 60.0,
+   "over": false,
+   "won": false,
+   "time_to_over": null,
+   "final": "d99f565c9461"
+  },
+  {
+   "seed": 6,
+   "bot": "policy",
+   "seconds": 60.0,
+   "over": false,
+   "won": false,
+   "time_to_over": null,
+   "final": "bf8febc4a1db"
+  },
+  {
+   "seed": 7,
+   "bot": "random",
+   "seconds": 60.0,
+   "over": false,
+   "won": false,
+   "time_to_over": null,
+   "final": "706fb78f5d1b"
+  },
+  {
+   "seed": 7,
+   "bot": "policy",
+   "seconds": 60.0,
+   "over": false,
+   "won": false,
+   "time_to_over": null,
+   "final": "ddbd994f7123"
+  },
+  {
+   "seed": 8,
+   "bot": "random",
+   "seconds": 60.0,
+   "over": false,
+   "won": false,
+   "time_to_over": null,
+   "final": "e1d9271ad011"
+  },
+  {
+   "seed": 8,
+   "bot": "policy",
+   "seconds": 60.0,
+   "over": false,
+   "won": false,
+   "time_to_over": null,
+   "final": "4b620b799248"
+  }
+ ],
+ "findings": [],
+ "stats": {
+  "label": "relative difficulty under policy bot",
+  "runs": 8,
+  "win_rate": 0.0,
+  "tto_p10": null,
+  "tto_p50": null,
+  "tto_p90": null,
+  "deaths_per_min": 0.0
+ },
+ "overrides": [],
+ "regression": {
+  "prev": "2026-10-18-2204-milestone.json",
+  "new_kinds": [],
+  "stat_shifts": {}
+ },
+ "cannot_judge": "Bots cannot judge fun, clarity or feel. A human playtest is still required before any gate."
+}

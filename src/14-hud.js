@@ -8,10 +8,13 @@ const UI_TEXT = '#d2dcc6';                        // main text
 const UI_DIM = '#95a493';                         // dim text
 const UI_BLOOD = '#c0181c';                       // blood accent
 const UI_LAMP = '#dcc870';                        // dirty lamp yellow
+const UI_ARROW = '#f2d43a';                       // guidance arrow: loud yellow, must read as "the yellow arrow"
+const UI_EXO = '#e0201f';                         // exorcist arrow: loud red
 const photoCv = makeCanvas(28, 32);               // tiny portrait buffer
 const photoG = photoCv.getContext('2d');
 const titleCv = makeCanvas(320, 180);             // low-res house for title
 const titleG = titleCv.getContext('2d');
+let hudArrows = [];                               // [wx, wy, color] queued this frame, drawn after post-fx
 
 // hard-edged panel with a 2px border
 function uiPanel(g, x, y, w, h) {
@@ -93,7 +96,7 @@ function drawPhoto(g, m, i, x, y) {
   }
   // fear strip under the photo
   rect(g, x + 4, y + 72, 56, 4, '#1a201b');
-  rect(g, x + 4, y + 72, Math.round(56 * f / 2) * 2, 4, UI_BLOOD);
+  rect(g, x + 4, y + 72, Math.floor(56 * f / 2) * 2, 4, UI_BLOOD);   // floor: 99.6 never reads full
   label(g, String(m.name || m.id).slice(0, 5), x + 32, y + 82, 8, gone ? UI_DIM : UI_TEXT);
   // fled: dim and cross out
   if (gone) {
@@ -115,20 +118,41 @@ function drawHUD() {
   }
   // fled count sits under the photos (bottom-left belongs to the diary)
   label(g, 'FLED ' + fled + ' / ' + family.length, W - 16, 122, 16, fled > 0 ? UI_BLOOD : UI_TEXT, 'right');
+  drawCostTag(g);
   if (typeof drawThreatHUD === 'function') drawThreatHUD(g);
+  hudArrows = [];
   drawOnboard(g);
+}
+
+// ecto price over the selected object's brackets, before you press E
+function drawCostTag(g) {
+  if (game.freeze > 0 || typeof threatCost !== 'function') return;
+  const o = nearestObject(roomAt(ghost.x, ghost.y));
+  if (!o || o.cool > 0) return;
+  const c = threatCost(o);
+  const lit = threat && threat.lights && roomIsLit(o.room);
+  const s = 'E ' + c + ' ecto' + (lit ? ' (lit x1.5)' : '') + (objSeen(o) ? ' - seen, weaker' : '');
+  const y = Math.max(HUD_BAND + 12, o.y - o.h - 36 - camY);
+  label(g, s, o.x - camX, y, 12, game.energy >= c ? UI_TEXT : UI_BLOOD, 'center');
+}
+
+// after post-fx, straight onto the visible canvas: the grade, grain and vignette would dull these
+function drawHUDOverlay(g) {
+  if (mode !== 'game' || !game || game.freeze > 0) return;
+  for (let i = 0; i < hudArrows.length; i++) drawEdgeArrow(g, hudArrows[i][0], hudArrows[i][1], hudArrows[i][2]);
+  if (typeof drawBanners === 'function') drawBanners(g);
 }
 
 // =====================================================================
 // ONBOARDING: one prompt at a time, each waits for the action
 // =====================================================================
 const ONBOARD_TEXT = [
+  'Get all 4 out the FRONT DOOR before 5 AM.',
   'Move with WASD. You float through walls.',
   'Follow the yellow arrow to someone.',
   'In their room, press E to haunt the nearest object.',
   'Scares cost ECTO (top left). Their fear refills it.',
   'Same trick twice scares less. Switch objects and rooms.',
-  'Get all 4 out the FRONT DOOR before 5 AM.',
 ];
 let onboard = null;                               // { game, step, t0, sx, sy }
 
@@ -155,21 +179,23 @@ function hudOnScreen(wx, wy) {
   return sx > 0 && sx < W && sy > 0 && sy < H;
 }
 
-// is the current step's action done
-function onboardDone(step, held) {
-  if (held < 1.5) return false;                   // every prompt is readable
-  if (step === 0) return Math.hypot(ghost.x - onboard.sx, ghost.y - onboard.sy) > 160;
-  if (step === 1) {
+// has the player already done this step's action (null: read-only line)
+function onboardAct(step) {
+  if (step === 1) return Math.hypot(ghost.x - onboard.sx, ghost.y - onboard.sy) > 160;
+  if (step === 2) {
     const m = hudNearestMember();
     return m !== null && hudOnScreen(m.x, m.y - 60) && Math.hypot(m.x - ghost.x, m.y - 60 - ghost.y) < 520;
   }
-  if (step === 2) {
-    for (let i = 0; i < OBJECTS.length; i++) {
-      if (OBJECTS[i].cool > 0) return true;       // something got haunted
-    }
-    return false;
-  }
-  return held > 6;                                // last two are just read
+  if (step === 3) return onboard.haunted;
+  return null;
+}
+
+// is the current step's action done
+function onboardDone(step, held) {
+  const typed = ONBOARD_TEXT[step].length / 40;   // typing speed in drawOnboard
+  if (held < typed + 1) return false;             // never cut a line mid-sentence
+  const act = onboardAct(step);
+  return act === null ? held > typed + 4 : act;   // read-only lines stay 4 s once typed
 }
 
 // chunky pixel arrow on the screen edge toward a world point
@@ -178,50 +204,74 @@ function drawEdgeArrow(g, wx, wy, color) {
   const sy = wy - camY;
   const dx = sx - W / 2;
   const dy = sy - H / 2;
+  // each stroke gets a dark drop shadow so it reads on lit rooms too
+  const seg = function (x1, y1, x2, y2) {
+    pixLine(g, x1 + 4, y1 + 4, x2 + 4, y2 + 4, 4, FONT_SHADOW);
+    pixLine(g, x1, y1, x2, y2, 4, color);
+  };
   if (hudOnScreen(wx, wy)) {
-    // on screen: a bobbing pixel chevron above the target
+    // on screen: a bobbing pixel chevron over the head, clear of the sprite and its fear pips
     const bx = Math.round(sx / 4) * 4;
-    const by = Math.round((sy - 40 + Math.sin(globalT * 5) * 6) / 4) * 4;
-    pixLine(g, bx - 16, by - 16, bx, by, 4, color);
-    pixLine(g, bx + 16, by - 16, bx, by, 4, color);
+    const by = Math.max(HUD_BAND + 28, Math.round((sy - 100 + Math.sin(globalT * 5) * 6) / 4) * 4);
+    seg(bx - 20, by - 20, bx, by);
+    seg(bx + 20, by - 20, bx, by);
     return;
   }
   // off screen: pin the tip to an inner rectangle that dodges the HUD
-  const t = Math.min((W / 2 - 56) / Math.max(1, Math.abs(dx)), (H / 2 - 140) / Math.max(1, Math.abs(dy)));
+  const t = Math.min((W / 2 - 56) / Math.max(1, Math.abs(dx)), (dy < 0 ? H / 2 - HUD_BAND - 24 : H / 2 - 140) / Math.max(1, Math.abs(dy)));
   const px = W / 2 + dx * t;
   const py = H / 2 + dy * t;
   const ang = Math.atan2(dy, dx);
   const pulse = 4 * Math.round(Math.sin(globalT * 6));
   const tx = px + Math.cos(ang) * pulse;
   const ty = py + Math.sin(ang) * pulse;
-  pixLine(g, tx, ty, tx + Math.cos(ang + 2.5) * 28, ty + Math.sin(ang + 2.5) * 28, 4, color);
-  pixLine(g, tx, ty, tx + Math.cos(ang - 2.5) * 28, ty + Math.sin(ang - 2.5) * 28, 4, color);
-  pixLine(g, tx, ty, tx - Math.cos(ang) * 36, ty - Math.sin(ang) * 36, 4, color);
+  seg(tx, ty, tx + Math.cos(ang + 2.5) * 28, ty + Math.sin(ang + 2.5) * 28);
+  seg(tx, ty, tx + Math.cos(ang - 2.5) * 28, ty + Math.sin(ang - 2.5) * 28);
+  seg(tx, ty, tx - Math.cos(ang) * 36, ty - Math.sin(ang) * 36);
 }
 
 // prompts + pointer arrows (screen space)
 function drawOnboard(g) {
   if (mode !== 'game' || !game) return;
+  if (typeof threat !== 'undefined' && threat && threat.paused) return;   // pause overlay stays on top
   if (!onboard || onboard.game !== game) {
-    onboard = { game: game, step: 0, t0: game.time, sx: ghost.x, sy: ghost.y };
+    onboard = { game: game, step: 0, t0: game.time, sx: ghost.x, sy: ghost.y, last: game.time, haunted: false };
   }
+  for (let i = 0; i < OBJECTS.length; i++) if (OBJECTS[i].cool > 0) onboard.haunted = true;
+  // one hint at a time: while a one-time explanation is up, the tutorial / context slab waits (and its clock holds)
+  const hintUp = !!threat && threat.toasts.some(function (t) { return t.hint; });
+  if (hintUp) onboard.t0 += game.time - onboard.last;
+  onboard.last = game.time;
   const held = game.time - onboard.t0;
   if (onboard.step < ONBOARD_TEXT.length && onboardDone(onboard.step, held)) {
     onboard.step += 1;
     onboard.t0 = game.time;
+    while (onboard.step < ONBOARD_TEXT.length && onboardAct(onboard.step) === true) onboard.step += 1;   // skip steps already done
   }
   const step = onboard.step;
-  // arrow to the nearest family member when nobody is in view (always on)
+  // arrow to the nearest family member when nobody is in view or in the ghost's room (always on)
   const m = hudNearestMember();
+  const gr = roomAt(ghost.x, ghost.y);
+  const lonely = step >= ONBOARD_TEXT.length && gr && hudRoomPeople(gr) === 0;   // the "Follow the yellow arrow" hint is up
   let anyVisible = false;
   for (let i = 0; i < family.length; i++) {
     const f = family[i];
     if (f.state !== 'gone' && hudOnScreen(f.x, f.y - 60)) anyVisible = true;
   }
-  if (m && (!anyVisible || step === 1)) drawEdgeArrow(g, m.x, m.y - 60, UI_LAMP);
+  if (m && (!anyVisible || step === 2 || lonely)) hudArrows.push([m.x, m.y - 60, UI_ARROW]);
+  // anyone running for the door, while they are off screen
+  for (let i = 0; i < family.length; i++) {
+    const f = family[i];
+    if (f.state === 'flee' && !hudOnScreen(f.x, f.y - 60)) hudArrows.push([f.x, f.y - 60, UI_ARROW]);
+  }
   // the front door during its prompt
   const dr = typeof DOOR !== 'undefined' ? DOOR : null;
-  if (step === ONBOARD_TEXT.length - 1 && dr) drawEdgeArrow(g, dr.x, dr.y - 80, UI_BLOOD);
+  if (step === 0 && dr) hudArrows.push([dr.x, dr.y - 80, UI_BLOOD]);
+  // the exorcist, whenever he is in the house (red, so it never reads as "follow me")
+  const h = threat && threat.hunter;
+  if (h && h.state !== 'flee') hudArrows.push([h.x, h.y - 60, UI_EXO]);
+  // repeat-trick warning lives on the cost tag of the selected object ("seen, weaker"), not in a toast
+  if (hintUp) return;
   if (step >= ONBOARD_TEXT.length) {
     drawContextHint(g);
     return;
@@ -314,11 +364,8 @@ function drawEndCard(t) {
 // =====================================================================
 // CONTEXT HINT: one plain line telling the player what to do right now
 // =====================================================================
-function contextHint() {
-  if (typeof roomAt !== 'function') return '';
-  const room = roomAt(ghost.x, ghost.y);
-  if (!room) return 'Float into a room.';
-  // who shares the room with the ghost
+// who shares a room with the ghost (fleeing members don't count)
+function hudRoomPeople(room) {
   let people = 0;
   for (let i = 0; i < family.length; i++) {
     const m = family[i];
@@ -326,12 +373,27 @@ function contextHint() {
     const r = roomAt(m.x, m.y - 20);
     if (r && r.id === room.id) people += 1;
   }
+  return people;
+}
+
+// would E on this room's selected object repeat a trick someone here has already seen
+function hudRepeat(room) {
+  const o = nearestObject(room);
+  return !!o && o.cool <= 0 && objSeen(o);
+}
+
+function contextHint() {
+  if (typeof roomAt !== 'function') return '';
+  const room = roomAt(ghost.x, ghost.y);
+  if (!room) return 'Float into a room.';
+  const people = hudRoomPeople(room);
   if (people === 0) return 'Nobody here. Follow the yellow arrow.';
   const o = typeof nearestObject === 'function' ? nearestObject(room) : null;
   if (!o) return 'Nothing to haunt here. Try another room.';
   if (o.cool > 0) return 'Recharging... try the other object in this room.';
   const cost = typeof threatCost === 'function' ? threatCost(o) : 25;
-  if (game.energy < cost) return 'Not enough ecto (' + cost + '). Wait a moment.';
+  if (game.energy < cost) return 'Not enough ecto (this costs ' + cost + '). Wait a moment.';
+  if (hudRepeat(room)) return 'They have seen this one: it scares less. Try another.';
   if (people > 1) return 'Press E now - you will scare ' + people + ' at once.';
   return 'Press E to haunt.';
 }
@@ -343,7 +405,8 @@ function drawContextHint(g) {
   if (!s) return;
   const k = fontScale(16);
   const w = measurePixelText(s, k);
-  const x0 = Math.round((W / 2 - w / 2 - 16) / 4) * 4;
+  let x0 = Math.round((W / 2 - w / 2 - 16) / 4) * 4;
+  if (threat && threat.showObj && threat.diaryR) x0 = Math.max(x0, Math.round((threat.diaryR + 16) / 4) * 4);  // never over the diary
   uiPanel(g, x0, 640, w + 32, 40);
-  label(g, s, W / 2 - w / 2, 660, 16, UI_TEXT, 'left');
+  label(g, s, x0 + 16, 660, 16, UI_TEXT, 'left');
 }

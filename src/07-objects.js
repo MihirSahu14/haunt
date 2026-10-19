@@ -311,7 +311,7 @@ function drawHalo(g, o, nearest) {
   const y0 = o.y - o.h - 12;
   const x1 = o.x + o.w / 2 + 12;
   const y1 = o.y + 4;
-  const ready = o.cool <= 0 && game.energy >= COST;
+  const ready = o.cool <= 0 && game.energy >= (typeof threatCost === 'function' ? threatCost(o) : COST);
   const a = nearest ? 0.55 + Math.sin(globalT * 3) * 0.15 : 0.18;
   const col = ready ? 'rgba(180,184,160,' + a.toFixed(3) + ')' : 'rgba(110,40,40,' + (a * 0.8).toFixed(3) + ')';
   rect(g, x0, y0, 16, 4, col);
@@ -329,7 +329,19 @@ function drawHalo(g, o, nearest) {
   }
 }
 
-// closest object in a room (ready ones first)
+// has someone in this object's room already seen its kind of trick (habit is per type, so another
+// portrait elsewhere counts too)
+function objSeen(o) {
+  for (let i = 0; i < family.length; i++) {
+    const m = family[i];
+    if (m.state === 'gone' || m.state === 'flee' || !m.habit || !m.habit[o.type]) continue;
+    const r = roomAt(m.x, m.y - 20);
+    if (r && r.id === o.room) return true;
+  }
+  return false;
+}
+
+// closest object in a room (ready ones first, then ones they have not seen yet)
 function nearestObject(room) {
   if (!room) return null;
   let best = null;
@@ -339,6 +351,7 @@ function nearestObject(room) {
     if (o.room !== room.id) continue;
     let d = Math.hypot(o.x - ghost.x, o.y - o.h / 2 - ghost.y);
     if (o.cool > 0) d += 5000;
+    else if (objSeen(o)) d += 2500;                   // don't snap back to a spent trick while a fresh one is ready
     if (d < bestD) {
       bestD = d;
       best = o;

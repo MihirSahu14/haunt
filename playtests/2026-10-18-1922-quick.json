@@ -1,0 +1,83 @@
+{
+ "version": 1,
+ "at": "2026-10-18T19:22:38",
+ "mode": "quick",
+ "engine": "web",
+ "build": ".",
+ "tier": 2,
+ "verdict": "PASS",
+ "summary": "PASS: boots, input works, no crashes, freezes or softlocks in 6 runs (tier 2)",
+ "runs": [
+  {
+   "seed": 1,
+   "bot": "random",
+   "seconds": 30.0,
+   "over": false,
+   "won": false,
+   "time_to_over": null,
+   "final": "49ddc162d1a8"
+  },
+  {
+   "seed": 1,
+   "bot": "policy",
+   "seconds": 30.0,
+   "over": false,
+   "won": false,
+   "time_to_over": null,
+   "final": "743bf3ee66ca"
+  },
+  {
+   "seed": 2,
+   "bot": "random",
+   "seconds": 30.0,
+   "over": false,
+   "won": false,
+   "time_to_over": null,
+   "final": "3f2ef6d5422e"
+  },
+  {
+   "seed": 2,
+   "bot": "policy",
+   "seconds": 30.0,
+   "over": false,
+   "won": false,
+   "time_to_over": null,
+   "final": "bb28a513734b"
+  },
+  {
+   "seed": 3,
+   "bot": "random",
+   "seconds": 30.0,
+   "over": false,
+   "won": false,
+   "time_to_over": null,
+   "final": "6b53aefa24c6"
+  },
+  {
+   "seed": 3,
+   "bot": "policy",
+   "seconds": 30.0,
+   "over": false,
+   "won": false,
+   "time_to_over": null,
+   "final": "0b9a114694c4"
+  }
+ ],
+ "findings": [],
+ "stats": {
+  "label": "relative difficulty under policy bot",
+  "runs": 3,
+  "win_rate": 0.0,
+  "tto_p10": null,
+  "tto_p50": null,
+  "tto_p90": null,
+  "deaths_per_min": 0.0
+ },
+ "overrides": [],
+ "regression": {
+  "prev": "2026-10-18-1823-quick.json",
+  "new_kinds": [],
+  "stat_shifts": {}
+ },
+ "cannot_judge": "Bots cannot judge fun, clarity or feel. A human playtest is still required before any gate."
+}

@@ -1,0 +1,561 @@
+{
+ "mm": {
+  "log": [
+   {
+    "t": 16.2,
+    "ev": "gone",
+    "id": "kid",
+    "ecto": 63,
+    "susp": 50
+   },
+   {
+    "t": 21.7,
+    "ev": "gone",
+    "id": "mom",
+    "ecto": 8,
+    "susp": 80
+   },
+   {
+    "t": 30.4,
+    "ev": "exorcist",
+    "susp": 78,
+    "ecto": 23
+   },
+   {
+    "t": 35.5,
+    "ev": "falter",
+    "n": 1,
+    "before": [
+     "dad:52:walk",
+     "mom:100:gone",
+     "kid:100:gone",
+     "dog:51:walk"
+    ],
+    "after": [
+     "dad:73:idle",
+     "mom:100:gone",
+     "kid:100:gone",
+     "dog:51:walk"
+    ],
+    "pres": 91
+   },
+   {
+    "t": 53.8,
+    "ev": "falter",
+    "n": 2,
+    "before": [
+     "dad:69:walk",
+     "mom:100:gone",
+     "kid:100:gone",
+     "dog:45:walk"
+    ],
+    "after": [
+     "dad:69:walk",
+     "mom:100:gone",
+     "kid:100:gone",
+     "dog:45:walk"
+    ],
+    "pres": 91
+   },
+   {
+    "t": 67.1,
+    "ev": "falter",
+    "n": 3,
+    "before": [
+     "dad:64:walk",
+     "mom:100:gone",
+     "kid:100:gone",
+     "dog:40:walk"
+    ],
+    "after": [
+     "dad:100:terrified",
+     "mom:100:gone",
+     "kid:100:gone",
+     "dog:88:idle"
+    ],
+    "pres": 100
+   },
+   {
+    "t": 77.4,
+    "ev": "gone",
+    "id": "dad",
+    "ecto": 29,
+    "susp": 56
+   },
+   {
+    "t": 80.8,
+    "ev": "gone",
+    "id": "dog",
+    "ecto": 19,
+    "susp": 60
+   }
+  ],
+  "minPres": 74.79999999999964,
+  "maxSusp": 82.01885654187952,
+  "lowT": 7.499999999999989,
+  "clock": 82.25600000000082,
+  "lose": null,
+  "won": true
+ },
+ "trace": [
+  {
+   "t": 0,
+   "ecto": 100,
+   "susp": 0,
+   "fam": [
+    [
+     "dad",
+     0,
+     "idle"
+    ],
+    [
+     "mom",
+     0,
+     "idle"
+    ],
+    [
+     "kid",
+     30,
+     "idle"
+    ],
+    [
+     "dog",
+     0,
+     "idle"
+    ]
+   ]
+  },
+  {
+   "t": 5,
+   "ecto": 80,
+   "susp": 12,
+   "fam": [
+    [
+     "dad",
+     0,
+     "walk"
+    ],
+    [
+     "mom",
+     0,
+     "walk"
+    ],
+    [
+     "kid",
+     74,
+     "walk"
+    ],
+    [
+     "dog",
+     0,
+     "walk"
+    ]
+   ]
+  },
+  {
+   "t": 10,
+   "ecto": 73,
+   "susp": 29,
+   "fam": [
+    [
+     "dad",
+     0,
+     "walk"
+    ],
+    [
+     "mom",
+     41,
+     "walk"
+    ],
+    [
+     "kid",
+     100,
+     "terrified"
+    ],
+    [
+     "dog",
+     0,
+     "walk"
+    ]
+   ]
+  },
+  {
+   "t": 14,
+   "ecto": 29,
+   "susp": 43,
+   "fam": [
+    [
+     "dad",
+     0,
+     "idle"
+    ],
+    [
+     "mom",
+     100,
+     "flee"
+    ],
+    [
+     "kid",
+     100,
+     "flee"
+    ],
+    [
+     "dog",
+     0,
+     "walk"
+    ]
+   ]
+  },
+  {
+   "t": 19,
+   "ecto": 28,
+   "susp": 70,
+   "fam": [
+    [
+     "dad",
+     36,
+     "walk"
+    ],
+    [
+     "mom",
+     100,
+     "flee"
+    ],
+    [
+     "kid",
+     100,
+     "gone"
+    ],
+    [
+     "dog",
+     28,
+     "walk"
+    ]
+   ]
+  },
+  {
+   "t": 24,
+   "ecto": 14,
+   "susp": 82,
+   "fam": [
+    [
+     "dad",
+     38,
+     "stare"
+    ],
+    [
+     "mom",
+     100,
+     "gone"
+    ],
+    [
+     "kid",
+     100,
+     "gone"
+    ],
+    [
+     "dog",
+     34,
+     "walk"
+    ]
+   ]
+  },
+  {
+   "t": 29,
+   "ecto": 20,
+   "susp": 78,
+   "fam": [
+    [
+     "dad",
+     49,
+     "walk"
+    ],
+    [
+     "mom",
+     100,
+     "gone"
+    ],
+    [
+     "kid",
+     100,
+     "gone"
+    ],
+    [
+     "dog",
+     42,
+     "idle"
+    ]
+   ]
+  },
+  {
+   "t": 34,
+   "ecto": 29,
+   "susp": 72,
+   "fam": [
+    [
+     "dad",
+     52,
+     "walk"
+    ],
+    [
+     "mom",
+     100,
+     "gone"
+    ],
+    [
+     "kid",
+     100,
+     "gone"
+    ],
+    [
+     "dog",
+     50,
+     "walk"
+    ]
+   ]
+  },
+  {
+   "t": 39,
+   "ecto": 17,
+   "susp": 75,
+   "fam": [
+    [
+     "dad",
+     73,
+     "walk"
+    ],
+    [
+     "mom",
+     100,
+     "gone"
+    ],
+    [
+     "kid",
+     100,
+     "gone"
+    ],
+    [
+     "dog",
+     49,
+     "walk"
+    ]
+   ]
+  },
+  {
+   "t": 44,
+   "ecto": 24,
+   "susp": 67,
+   "fam": [
+    [
+     "dad",
+     72,
+     "walk"
+    ],
+    [
+     "mom",
+     100,
+     "gone"
+    ],
+    [
+     "kid",
+     100,
+     "gone"
+    ],
+    [
+     "dog",
+     47,
+     "walk"
+    ]
+   ]
+  },
+  {
+   "t": 49,
+   "ecto": 32,
+   "susp": 60,
+   "fam": [
+    [
+     "dad",
+     70,
+     "walk"
+    ],
+    [
+     "mom",
+     100,
+     "gone"
+    ],
+    [
+     "kid",
+     100,
+     "gone"
+    ],
+    [
+     "dog",
+     46,
+     "stare"
+    ]
+   ]
+  },
+  {
+   "t": 54,
+   "ecto": 1,
+   "susp": 63,
+   "fam": [
+    [
+     "dad",
+     68,
+     "walk"
+    ],
+    [
+     "mom",
+     100,
+     "gone"
+    ],
+    [
+     "kid",
+     100,
+     "gone"
+    ],
+    [
+     "dog",
+     44,
+     "walk"
+    ]
+   ]
+  },
+  {
+   "t": 59,
+   "ecto": 9,
+   "susp": 61,
+   "fam": [
+    [
+     "dad",
+     66,
+     "walk"
+    ],
+    [
+     "mom",
+     100,
+     "gone"
+    ],
+    [
+     "kid",
+     100,
+     "gone"
+    ],
+    [
+     "dog",
+     42,
+     "walk"
+    ]
+   ]
+  },
+  {
+   "t": 64,
+   "ecto": 16,
+   "susp": 55,
+   "fam": [
+    [
+     "dad",
+     65,
+     "idle"
+    ],
+    [
+     "mom",
+     100,
+     "gone"
+    ],
+    [
+     "kid",
+     100,
+     "gone"
+    ],
+    [
+     "dog",
+     40,
+     "walk"
+    ]
+   ]
+  },
+  {
+   "t": 69,
+   "ecto": 19,
+   "susp": 61,
+   "fam": [
+    [
+     "dad",
+     100,
+     "flee"
+    ],
+    [
+     "mom",
+     100,
+     "gone"
+    ],
+    [
+     "kid",
+     100,
+     "gone"
+    ],
+    [
+     "dog",
+     99,
+     "walk"
+    ]
+   ]
+  },
+  {
+   "t": 74,
+   "ecto": 23,
+   "susp": 59,
+   "fam": [
+    [
+     "dad",
+     100,
+     "flee"
+    ],
+    [
+     "mom",
+     100,
+     "gone"
+    ],
+    [
+     "kid",
+     100,
+     "gone"
+    ],
+    [
+     "dog",
+     99,
+     "stare"
+    ]
+   ]
+  },
+  {
+   "t": 79,
+   "ecto": 30,
+   "susp": 56,
+   "fam": [
+    [
+     "dad",
+     100,
+     "gone"
+    ],
+    [
+     "mom",
+     100,
+     "gone"
+    ],
+    [
+     "kid",
+     100,
+     "gone"
+    ],
+    [
+     "dog",
+     99,
+     "walk"
+    ]
+   ]
+  }
+ ]
+}

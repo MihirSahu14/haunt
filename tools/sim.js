@@ -66,6 +66,8 @@ const sandbox = {
   localStorage: { getItem() { return null; }, setItem() {} },
 };
 sandbox.window = sandbox;
+// SIM_KNOBS='{"hunt_warn":60}': playbench knob overrides, read like window.__playbench.overrides
+if (process.env.SIM_KNOBS) sandbox.__playbench = { overrides: JSON.parse(process.env.SIM_KNOBS) };
 vm.createContext(sandbox);
 for (const s of srcs) vm.runInContext(fs.readFileSync(path.join(root, s), 'utf8'), sandbox, { filename: s });
 

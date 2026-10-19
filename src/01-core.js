@@ -4,6 +4,7 @@
 // =====================================================================
 const W = 1280;                                   // logical width
 const H = 720;                                    // logical height
+const HUD_BAND = 128;                             // screen y where the top HUD (ecto, clock, bars, photos) ends
 const canvas = document.getElementById('game');   // visible canvas
 const ctx = canvas.getContext('2d');              // visible context
 const scene = makeCanvas(W, H);                   // world is drawn here first
