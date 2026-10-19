@@ -41,7 +41,7 @@ function onPress(pt) {
     return;
   }
   ghost.tx = clamp(pt.x, 40, worldW() - 40);
-  ghost.ty = clamp(pt.y, 40, worldH() - 40);
+  ghost.ty = clamp(pt.y, GHOST_TOP, worldH() - 40);
 }
 
 canvas.addEventListener('mousedown', function (e) {

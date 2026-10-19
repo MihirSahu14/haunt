@@ -311,7 +311,7 @@ function drawHalo(g, o, nearest) {
   const y0 = o.y - o.h - 12;
   const x1 = o.x + o.w / 2 + 12;
   const y1 = o.y + 4;
-  const ready = o.cool <= 0 && game.energy >= COST;
+  const ready = o.cool <= 0 && game.energy >= (typeof threatCost === 'function' ? threatCost(o) : COST);
   const a = nearest ? 0.55 + Math.sin(globalT * 3) * 0.15 : 0.18;
   const col = ready ? 'rgba(180,184,160,' + a.toFixed(3) + ')' : 'rgba(110,40,40,' + (a * 0.8).toFixed(3) + ')';
   rect(g, x0, y0, 16, 4, col);

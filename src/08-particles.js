@@ -92,7 +92,7 @@ function drawPops(g) {
     g.save();
     g.globalAlpha = clamp(a, 0, 1);
     const hw = measurePixelText(p.text, fontScale(p.size)) * s / 2 + 8;
-    g.translate(clamp(p.x - camX, hw, W - hw), clamp(p.y - camY - p.t * 30, 16, H - 16));   // world -> screen, kept fully on screen
+    g.translate(clamp(p.x - camX, hw, W - hw), clamp(p.y - camY - p.t * 30, HUD_BAND + 16, H - 16));   // world -> screen, on screen and below the top HUD
     g.scale(s, s);
     label(g, p.text, 0, 0, p.size, p.color);
     g.restore();

@@ -31,5 +31,47 @@
     "deaths_per_min": 0.0
    }
   }
+ },
+ "hunt_warn": {
+  "at": "2026-10-18T21:14:24",
+  "bot": "policy",
+  "values": {
+   "55.0": {
+    "label": "relative difficulty under policy bot",
+    "runs": 3,
+    "win_rate": 1.0,
+    "tto_p10": 78.4,
+    "tto_p50": 84.0,
+    "tto_p90": 120.16,
+    "deaths_per_min": 0.0
+   },
+   "60.0": {
+    "label": "relative difficulty under policy bot",
+    "runs": 3,
+    "win_rate": 1.0,
+    "tto_p10": 120.56,
+    "tto_p50": 131.6,
+    "tto_p90": 180.08,
+    "deaths_per_min": 0.0
+   },
+   "65.0": {
+    "label": "relative difficulty under policy bot",
+    "runs": 3,
+    "win_rate": 1.0,
+    "tto_p10": 100.4,
+    "tto_p50": 132.0,
+    "tto_p90": 180.16,
+    "deaths_per_min": 0.0
+   },
+   "80.0": {
+    "label": "relative difficulty under policy bot",
+    "runs": 3,
+    "win_rate": 1.0,
+    "tto_p10": 95.76,
+    "tto_p50": 132.0,
+    "tto_p90": 180.16,
+    "deaths_per_min": 0.0
+   }
+  }
  }
 }

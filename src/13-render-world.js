@@ -303,4 +303,5 @@ function render() {
     drawEnding();
   }
   postProcess();
+  if (typeof drawHUDOverlay === 'function') drawHUDOverlay(ctx);
 }

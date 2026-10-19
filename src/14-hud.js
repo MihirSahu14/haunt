@@ -13,6 +13,7 @@ const photoCv = makeCanvas(28, 32);               // tiny portrait buffer
 const photoG = photoCv.getContext('2d');
 const titleCv = makeCanvas(320, 180);             // low-res house for title
 const titleG = titleCv.getContext('2d');
+let hudArrows = [];                               // [wx, wy, color] queued this frame, drawn after post-fx
 
 // hard-edged panel with a 2px border
 function uiPanel(g, x, y, w, h) {
@@ -116,8 +117,29 @@ function drawHUD() {
   }
   // fled count sits under the photos (bottom-left belongs to the diary)
   label(g, 'FLED ' + fled + ' / ' + family.length, W - 16, 122, 16, fled > 0 ? UI_BLOOD : UI_TEXT, 'right');
+  drawCostTag(g);
   if (typeof drawThreatHUD === 'function') drawThreatHUD(g);
+  hudArrows = [];
   drawOnboard(g);
+}
+
+// ecto price over the selected object's brackets, before you press E
+function drawCostTag(g) {
+  if (game.freeze > 0 || typeof threatCost !== 'function') return;
+  const o = nearestObject(roomAt(ghost.x, ghost.y));
+  if (!o || o.cool > 0) return;
+  const c = threatCost(o);
+  const lit = threat && threat.lights && roomIsLit(o.room);
+  const s = 'E ' + c + ' ecto' + (lit ? ' (lit x1.5)' : '');
+  const y = Math.max(HUD_BAND + 12, o.y - o.h - 36 - camY);
+  label(g, s, o.x - camX, y, 12, game.energy >= c ? UI_TEXT : UI_BLOOD, 'center');
+}
+
+// after post-fx, straight onto the visible canvas: the grade, grain and vignette would dull these
+function drawHUDOverlay(g) {
+  if (mode !== 'game' || !game || game.freeze > 0) return;
+  for (let i = 0; i < hudArrows.length; i++) drawEdgeArrow(g, hudArrows[i][0], hudArrows[i][1], hudArrows[i][2]);
+  if (typeof drawBanners === 'function') drawBanners(g);
 }
 
 // =====================================================================
@@ -188,13 +210,13 @@ function drawEdgeArrow(g, wx, wy, color) {
   if (hudOnScreen(wx, wy)) {
     // on screen: a bobbing pixel chevron over the head, clear of the sprite and its fear pips
     const bx = Math.round(sx / 4) * 4;
-    const by = Math.max(24, Math.round((sy - 100 + Math.sin(globalT * 5) * 6) / 4) * 4);
+    const by = Math.max(HUD_BAND + 28, Math.round((sy - 100 + Math.sin(globalT * 5) * 6) / 4) * 4);
     seg(bx - 20, by - 20, bx, by);
     seg(bx + 20, by - 20, bx, by);
     return;
   }
   // off screen: pin the tip to an inner rectangle that dodges the HUD
-  const t = Math.min((W / 2 - 56) / Math.max(1, Math.abs(dx)), (H / 2 - 140) / Math.max(1, Math.abs(dy)));
+  const t = Math.min((W / 2 - 56) / Math.max(1, Math.abs(dx)), (dy < 0 ? H / 2 - HUD_BAND - 24 : H / 2 - 140) / Math.max(1, Math.abs(dy)));
   const px = W / 2 + dx * t;
   const py = H / 2 + dy * t;
   const ang = Math.atan2(dy, dx);
@@ -221,17 +243,24 @@ function drawOnboard(g) {
   const step = onboard.step;
   // arrow to the nearest family member when nobody is in view or in the ghost's room (always on)
   const m = hudNearestMember();
-  const gr = typeof roomAt === 'function' ? roomAt(ghost.x, ghost.y) : null;
+  const gr = roomAt(ghost.x, ghost.y);
   const lonely = step >= ONBOARD_TEXT.length && gr && hudRoomPeople(gr) === 0;   // the "Follow the yellow arrow" hint is up
   let anyVisible = false;
   for (let i = 0; i < family.length; i++) {
     const f = family[i];
     if (f.state !== 'gone' && hudOnScreen(f.x, f.y - 60)) anyVisible = true;
   }
-  if (m && (!anyVisible || step === 2 || lonely)) drawEdgeArrow(g, m.x, m.y - 60, UI_ARROW);
+  if (m && (!anyVisible || step === 2 || lonely)) hudArrows.push([m.x, m.y - 60, UI_ARROW]);
+  // anyone running for the door, while they are off screen
+  for (let i = 0; i < family.length; i++) {
+    const f = family[i];
+    if (f.state === 'flee' && !hudOnScreen(f.x, f.y - 60)) hudArrows.push([f.x, f.y - 60, UI_ARROW]);
+  }
   // the front door during its prompt
   const dr = typeof DOOR !== 'undefined' ? DOOR : null;
-  if (step === 0 && dr) drawEdgeArrow(g, dr.x, dr.y - 80, UI_BLOOD);
+  if (step === 0 && dr) hudArrows.push([dr.x, dr.y - 80, UI_BLOOD]);
+  // about to repeat a trick someone here has already seen: say so once, before the ecto is paid
+  if (gr && hudRepeat(gr)) tellOnce('repeat', 'They have seen this trick: it scares less. Pick another object.');
   if (step >= ONBOARD_TEXT.length) {
     drawContextHint(g);
     return;
@@ -336,6 +365,19 @@ function hudRoomPeople(room) {
   return people;
 }
 
+// would E on this room's selected object repeat a trick someone here has already seen
+function hudRepeat(room) {
+  const o = nearestObject(room);
+  if (!o || o.cool > 0) return false;
+  for (let i = 0; i < family.length; i++) {
+    const m = family[i];
+    if (m.state === 'gone' || m.state === 'flee' || !m.habit || !m.habit[o.type]) continue;
+    const r = roomAt(m.x, m.y - 20);
+    if (r && r.id === room.id) return true;
+  }
+  return false;
+}
+
 function contextHint() {
   if (typeof roomAt !== 'function') return '';
   const room = roomAt(ghost.x, ghost.y);
@@ -346,7 +388,8 @@ function contextHint() {
   if (!o) return 'Nothing to haunt here. Try another room.';
   if (o.cool > 0) return 'Recharging... try the other object in this room.';
   const cost = typeof threatCost === 'function' ? threatCost(o) : 25;
-  if (game.energy < cost) return 'Not enough ecto (' + cost + '). Wait a moment.';
+  if (game.energy < cost) return 'Not enough ecto (this costs ' + cost + '). Wait a moment.';
+  if (hudRepeat(room)) return 'They have seen this one: it scares less. Try another.';
   if (people > 1) return 'Press E now - you will scare ' + people + ' at once.';
   return 'Press E to haunt.';
 }

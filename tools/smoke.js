@@ -185,6 +185,25 @@ run('force gameover', function () {
   click(640, 450);
   frames(60);
 });
+run('whisper rules', function () {
+  const r = vm.runInContext('(function () {' +
+    ' startGame(); threat.whisper = true; const m = family[2];' +
+    ' for (const o of family) if (o !== m) o.state = "gone";' +            // one victim alone in the room
+    ' m.state = "idle"; ghost.x = m.x; ghost.y = m.y - 60;' +
+    ' const w = function (f) { if (f !== undefined) m.fear = f; threat.whisperCool = 0; game.energy = 50; threatWhisper(); return m.fear; };' +
+    ' m.scaredAgo = 99; const a = w(50), e = game.energy, b = w(), c = w(79), d = w(85);' +
+    ' return [a, e, b, c, d, m.scaredAgo]; })()', sandbox);
+  const want = [58, 42, 62, 80, 85, 99];   // +8, no single-victim refund, repeat halves, cap 80, never past it, decay clock untouched
+  if (String(r) !== String(want)) errors.push('whisper rules: got ' + r + ', want ' + want);
+});
+run('ghost stays below the top HUD', function () {
+  vm.runInContext('startGame(); ghost.x = 1280; ghost.y = 60;', sandbox);
+  key('KeyW', true);
+  frames(60);
+  key('KeyW', false);
+  const y = vm.runInContext('ghost.y - camY', sandbox);
+  if (!(y >= vm.runInContext('HUD_BAND', sandbox) + 40)) errors.push('ghost screen y ' + y + ' is inside the top HUD band');
+});
 run('dawn', function () {
   vm.runInContext('if (typeof threat !== "undefined" && threat) { threat.clock = 1e6; }', sandbox);
   frames(120);

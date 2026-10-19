@@ -4,16 +4,21 @@
 // Only defines window.__game; nothing here runs unless a harness calls it,
 // so normal play is unchanged. Contract: playbench docs/reference.md "Probe contract".
 // Knobs read window.__playbench.overrides in 09-game.js / 10-threats.js:
-//   fear_base (19), fear_decay (0.5), night_len (300), hunt_warn (80).
+//   fear_base, fear_decay, scare_hold, night_len, hunt_warn, whisper_fear, whisper_cap (defaults: design/design.md).
 // =====================================================================
 (function () {
   const r0 = function (v) { return Math.round(v); };
   const r10 = function (v) { return Math.round(v / 10) * 10; };   // coarse position: hash stays still when the ghost does
 
+  const T = { smax: 0, hunted: false };                            // run-long peaks (one page load = one run)
   function state() {
     const live = mode === 'game' || mode === 'gameover' || mode === 'ending';
     const gr = live ? roomAt(ghost.x, ghost.y) : null;
-    const toasts = threat ? threat.toasts : [];
+    const toasts = threat ? threat.toasts.concat(threat.banners) : [];   // a live reward banner wins the toast slot
+    if (threat) {
+      T.smax = Math.max(T.smax, threat.suspicion);
+      T.hunted = T.hunted || !!threat.hunter;
+    }
     return {
       over: mode === 'ending' || mode === 'gameover',
       won: mode === 'ending',
@@ -37,6 +42,8 @@
       toast: toasts.length ? toasts[toasts.length - 1].text : '',
       t: threat ? r0(threat.clock) : 0,                                     // night clock (ignored by the hash)
       _dawn_in: threat ? r0(NIGHT_LEN - threat.clock) : NIGHT_LEN,
+      _susp_max: r0(T.smax),                                                // peak suspicion this run
+      _hunted: T.hunted,                                                    // the exorcist came at least once
     };
   }
 
