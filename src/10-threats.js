@@ -454,12 +454,15 @@ function drawThreatHUD(g) {
   if (threat.showObj) {
     const act = activeObjectives();
     label(g, 'DIARY  [TAB]', 24, H - 110, 11, '#95a493', 'left');
+    let dw = 0;
     for (let i = 0; i < act.length; i++) {
       let tag = '';
       if (act[i].reward === 'whisper') tag = '  (unlocks Q)';
       if (act[i].reward === 'manifest') tag = '  (unlocks R)';
+      dw = Math.max(dw, measurePixelText('- ' + act[i].text + tag, fontScale(12)));
       label(g, '- ' + act[i].text + tag, 24, H - 90 + i * 18, 12, '#c6cfba', 'left');
     }
+    threat.diaryR = 24 + dw;                          // the context hint slides right of this
     const q = threat.whisper ? (threat.whisperCool > 0 ? 'Q whisper ..' : 'Q whisper') : 'Q locked';
     const rr2 = threat.manifest ? (threat.manifestCool > 0 ? 'R manifest ' + Math.ceil(threat.manifestCool) + 's' : 'R manifest') : 'R locked';
     label(g, q + '    ' + rr2, 24, H - 130, 12, threat.whisper || threat.manifest ? '#c9b56a' : '#95a493', 'left');

@@ -163,6 +163,10 @@ run('extra keys', function () {
 });
 run('click world', function () { for (let i = 0; i < 10; i++) { click(100 + i * 110, 200 + (i % 4) * 120); frames(20); } });
 run('long play 120s', function () { frames(60 * 120); });
+run('fear display floors', function () {
+  const f = vm.runInContext('family[0].fear = 99.6; window.__game.state().family[0].fear', sandbox);
+  if (f !== 99) errors.push('probe shows fear 99.6 as ' + f + ', want 99');
+});
 run('force jumpscare', function () {
   vm.runInContext('if (typeof family !== "undefined" && family[0] && typeof terrify === "function") { family[0].fear = 100; terrify(family[0]); }', sandbox);
   frames(120);

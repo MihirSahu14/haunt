@@ -24,7 +24,7 @@
       ghost: { x: r10(ghost.x), y: r10(ghost.y), room: gr ? gr.id : null },
       family: family.map(function (m) {
         const r = roomAt(m.x, m.y - 20);
-        return { id: m.id, fear: r0(m.fear), state: m.state, room: r ? r.id : null };
+        return { id: m.id, fear: Math.floor(m.fear), state: m.state, room: r ? r.id : null };
       }),
       ecto: game ? r0(game.energy) : 0,
       suspicion: threat ? r0(threat.suspicion) : 0,

@@ -91,7 +91,8 @@ function drawPops(g) {
     const a = 1 - Math.pow(p.t / p.max, 3);
     g.save();
     g.globalAlpha = clamp(a, 0, 1);
-    g.translate(p.x - camX, p.y - camY - p.t * 30);   // world -> screen
+    const hw = measurePixelText(p.text, fontScale(p.size)) * s / 2 + 8;
+    g.translate(clamp(p.x - camX, hw, W - hw), clamp(p.y - camY - p.t * 30, 16, H - 16));   // world -> screen, kept fully on screen
     g.scale(s, s);
     label(g, p.text, 0, 0, p.size, p.color);
     g.restore();
