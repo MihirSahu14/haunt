@@ -4,7 +4,7 @@
 // Only defines window.__game; nothing here runs unless a harness calls it,
 // so normal play is unchanged. Contract: playbench docs/reference.md "Probe contract".
 // Knobs read window.__playbench.overrides in 09-game.js / 10-threats.js:
-//   fear_base, fear_decay, scare_hold, night_len, hunt_warn, whisper_fear, whisper_cap (defaults: design/design.md).
+//   fear_base, fear_decay, scare_hold, exo_calm, night_len, hunt_warn, whisper_fear, whisper_cap, lantern_drain (defaults: design/design.md).
 // =====================================================================
 (function () {
   const r0 = function (v) { return Math.round(v); };
@@ -14,7 +14,7 @@
   function state() {
     const live = mode === 'game' || mode === 'gameover' || mode === 'ending';
     const gr = live ? roomAt(ghost.x, ghost.y) : null;
-    const toasts = threat ? threat.toasts.concat(threat.banners) : [];   // a live reward banner wins the toast slot
+    const toasts = threat ? threat.toasts.concat(threat.banners.slice(0, 1)) : [];   // the showing reward banner wins the toast slot
     if (threat) {
       T.smax = Math.max(T.smax, threat.suspicion);
       T.hunted = T.hunted || !!threat.hunter;

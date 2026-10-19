@@ -6,6 +6,7 @@ const HUNT_WARN = (window.__playbench?.overrides ?? {}).hunt_warn ?? 60;     // 
 const HUNT_DELAY = 8;             // seconds of warning before he walks in
 const TOAST_T = 3.2;              // seconds a toast line stays up
 const BANNER_T = 4;               // seconds a task/unlock banner stays up (fully lit for 3.5)
+const BANNER_Q = 1.8;             // seconds per banner while others wait in the queue
 const HUNT_STAY = 40;             // seconds he searches before giving up for now
 const HOPE_FEAR = 40;             // fear everyone takes when the exorcist breaks
 const FADE_T = 20;                // seconds starving (ecto < 10) before you fade
@@ -14,6 +15,8 @@ const WHISPER_FEAR = (window.__playbench?.overrides ?? {}).whisper_fear ?? 8;   
 const WHISPER_CAP = (window.__playbench?.overrides ?? {}).whisper_cap ?? 80;    // whisper alone never lifts fear past this (playbench knob)
 const WHISPER_WINDOW = 10;        // seconds a whisper still counts as a repeat on that victim
 const HUNT_R = 220;               // exorcist lantern radius (world units)
+const LANTERN_DRAIN = (window.__playbench?.overrides ?? {}).lantern_drain ?? 9;   // presence lost per second in the lantern (playbench knob; was 25: about 4 s to react)
+const WHISPER_COST = 8;           // ecto per whisper; a crowd refund never exceeds it
 const SOUND_T = { piano: 1, plates: 1, tv: 1, radio: 1, clock: 1, door: 1 };
 const SIGHT_T = { mirror: 1, portrait: 1, lights: 1, faucet: 1, bath: 1, blood: 1 };
 
@@ -23,9 +26,9 @@ function makeObjectives() {
   L.push({ text: 'Haunt 3 different rooms', reward: 'ecto', test: function (e) { return e.kind === 'scare' && Object.keys(threat.rooms).length >= 3; } });
   L.push({ text: 'Make the Kid drop the teddy', reward: 'whisper', test: function (e) { return e.kind === 'drop' && e.m.id === 'kid'; } });
   L.push({ text: 'Scare two people at once', reward: 'ecto', test: function (e) { return e.kind === 'scare' && e.n >= 2; } });
-  L.push({ text: 'Make Dad scream', reward: 'ecto', test: function (e) { return e.kind === 'terrify' && e.m.id === 'dad'; } });
+  L.push({ text: 'Make Dad scream', reward: 'ecto', test: function (e) { return (e.kind === 'terrify' && e.m.id === 'dad') || family.some(function (m) { return m.id === 'dad' && (m.state === 'flee' || m.state === 'gone'); }); } });
   L.push({ text: 'Chain a x3 combo', reward: 'manifest', test: function (e) { return e.kind === 'scare' && e.combo >= 3; } });
-  L.push({ text: 'Drive someone out the door', reward: 'ecto', test: function (e) { return e.kind === 'gone'; } });
+  L.push({ text: 'Drive someone out the door', reward: 'ecto', test: function (e) { return e.kind === 'gone' || family.some(function (m) { return m.state === 'gone'; }); } });   // counts a flee from before the task was active
   return L;
 }
 
@@ -50,13 +53,20 @@ function toast(text, color, life) {
   }
   threat.toasts.push({ text: text, color: color || '#c6cfba', t: 0, life: life || TOAST_T });
   if (threat.toasts.length > 3) threat.toasts.shift();
+  return threat.toasts[threat.toasts.length - 1];
+}
+
+// big banner in the strip under the top HUD; queued, one at a time
+function banner(text, sub, color) {
+  if (!threat) return;
+  threat.banners.push({ text: text, sub: sub, t: 0, color: color || '#f2d43a' });
 }
 
 // one-time explanation, the first time its situation comes up
 function tellOnce(key, text) {
   if (!threat || threat.told[key]) return;
   threat.told[key] = true;
-  toast(text, '#dcc870', 6);
+  toast(text, '#dcc870', 6).hint = true;            // hint: the tutorial / context slab waits while it shows
 }
 
 // drop toasts starting with a prefix (a stale "Q is locked..." once Q unlocks)
@@ -84,10 +94,10 @@ function activeObjectives() {
 // gameplay event hook: checks objectives
 function threatEvent(e) {
   if (!threat) return;
-  const act = activeObjectives();
-  for (let i = 0; i < act.length; i++) {
+  // re-check after each completion: a newly active task may already be done (an earlier flee)
+  for (let i = 0, act = activeObjectives(); i < act.length; i++) {
     const ob = act[i];
-    if (!ob.test(e)) continue;
+    if (ob.done || !ob.test(e)) continue;
     ob.done = true;
     if (ob.reward === 'whisper') {
       threat.whisper = true;
@@ -99,9 +109,10 @@ function threatEvent(e) {
       game.energy = Math.min(100, game.energy + 30);
     }
     const msg = ob.reward === 'whisper' ? 'Q WHISPER UNLOCKED' : (ob.reward === 'manifest' ? 'R MANIFEST UNLOCKED' : '+30 ECTO');
-    // loud reward: big centred banner and a rising three-note chime
-    threat.banners.push({ text: msg, sub: 'done: ' + ob.text.toLowerCase(), t: 0 });
-    if (threat.banners.length > 3) threat.banners.shift();
+    // loud reward: queued banner and a rising three-note chime
+    banner(msg, 'done: ' + ob.text.toLowerCase());
+    act = activeObjectives();
+    i = -1;
     tone(220, 0.6, 'sine', 0.1, 330);
     tone(330, 0.6, 'sine', 0.1, 440, 0.12);
     tone(440, 0.9, 'triangle', 0.1, 660, 0.24);
@@ -178,22 +189,30 @@ function threatWhisper() {
     toast('Q: recharging...');
     return;
   }
-  if (game.energy < 8) {
-    toast('Q: needs 8 ecto.');
+  if (game.energy < WHISPER_COST) {
+    toast('Q: needs ' + WHISPER_COST + ' ecto.');
     return;
   }
-  game.energy -= 8;
+  const v = victimsIn(r.id);
+  const h = threat.hunter;
+  const hr = h && h.state !== 'flee' ? roomAt(h.x, h.y - 20) : null;
+  if (v.length === 0 && !(hr && hr.id === r.id)) {
+    toast('No one hears you. (no ecto spent)');      // a miss is free
+    return;
+  }
+  game.energy -= WHISPER_COST;
   threat.whisperCool = 2.5;
   if (typeof whisper === 'function') whisper(1.6, 0.25);
-  const v = victimsIn(r.id);
-  if (v.length === 0) toast('You whisper. Nobody is here to hear it.');
+  let refund = 0;
   for (let i = 0; i < v.length; i++) {
     const add = whisperFear(v[i]);
     v[i].bangT = 0.8;                                   // visible flinch; scaredAgo untouched, so fear still decays
-    // refund only for a crowd: one victim at a time is no free fear pump
-    if (v.length >= 2) game.energy = Math.min(100, game.energy + add * 0.6);
-    pop(add > 0 ? '+' + Math.round(add) : 'unmoved', v[i].x + 40, v[i].y - v[i].h - 30, 16, '#c6cfba', 1);
+    refund += add * 0.6;
+    pop(add > 0 ? '+' + Math.round(add) + ' fear' : 'unmoved: whispers stop at ' + WHISPER_CAP, v[i].x + 40, v[i].y - v[i].h - 30, add > 0 ? 18 : 14, add > 0 ? '#f2d43a' : '#95a493', 1.2);
   }
+  // refund only for a crowd, and never more than the cost: whisper is no fear pump
+  if (v.length >= 2) game.energy = Math.min(100, game.energy + Math.min(WHISPER_COST, refund));
+  hunterScare('whisper', r.id);                         // a whisper counts as one of his 3 tricks
 }
 
 // whisper fear on one victim: halves per repeat inside WHISPER_WINDOW, never lifts fear past WHISPER_CAP
@@ -304,7 +323,8 @@ function saltBlock(px, py) {
 function spawnHunter() {
   const d = doorPt();
   threat.hunter = { x: d.x + 80, y: d.y, facing: -1, t: 0, state: 'walk', path: [{ x: d.x - 40, y: d.y }], walkPhase: 0, speed: 75, used: {}, scares: 0, repath: 2, jumpT: 0, h: 110 };
-  toast('THE EXORCIST', '#a01818');
+  banner('THE EXORCIST IS HERE', 'haunt 3 different tricks in his room to break him. keep out of his lantern', '#e0201f');
+  tellOnce('exorcist', 'EXORCIST 0/3: use 3 different tricks (E objects or Q) in his room. His lantern burns you.');
   if (typeof doorSlam === 'function') doorSlam();
 }
 
@@ -349,7 +369,8 @@ function updateHunter(dt) {
   // lantern burns the ghost
   const d = Math.hypot(ghost.x - h.x, ghost.y - (h.y - 60));
   if (d < HUNT_R) {
-    threat.presence -= 25 * dt;
+    threat.presence -= LANTERN_DRAIN * dt;
+    threat.burnT = 0.3;                                 // drives the lantern warning
     shake = Math.max(shake, 4);
     abBoost = Math.max(abBoost, 5);
   }
@@ -360,6 +381,7 @@ function updateThreats(dt) {
   threat.clock += dt;
   threat.quietT += dt;
   threat.whisperCool = Math.max(0, threat.whisperCool - dt);
+  threat.burnT = Math.max(0, (threat.burnT || 0) - dt);
   threat.manifestCool = Math.max(0, (threat.manifestCool || 0) - dt);
   if (threat.quietT > 4) threat.suspicion = Math.max(0, threat.suspicion - 1.5 * dt);
   const kid = family[2];
@@ -393,12 +415,16 @@ function updateThreats(dt) {
     if (threat.toasts[i].t < threat.toasts[i].life) keepT.push(threat.toasts[i]);
   }
   threat.toasts = keepT;
-  for (let i = 0; i < threat.banners.length; i++) threat.banners[i].t += dt;
-  threat.banners = threat.banners.filter(function (b) { return b.t < BANNER_T; });
+  // banners: only the front one ages (and not while the lantern warning holds the strip)
+  const b0 = threat.banners[0];
+  if (b0 && !(threat.burnT > 0)) {
+    b0.t += dt;
+    if (b0.t >= (threat.banners.length > 1 ? BANNER_Q : BANNER_T)) threat.banners.shift();
+  }
   if (threat.suspicion >= 25) tellOnce('susp', 'SUSPICION rises with noise. At ' + HUNT_WARN + ' they call the exorcist.');
   if (!threat.lights && threat.suspicion >= 40) {
     threat.lights = true;
-    toast('the lights are on now', '#c9b56a');
+    toast('The lights are on - scares in lit rooms cost x1.5', '#dcc870', 5);
   } else if (threat.lights && threat.suspicion < 20) {
     // quiet long enough: they go back to bed
     threat.lights = false;
@@ -511,7 +537,7 @@ function drawThreatHUD(g) {
   g.fillRect(W / 2 - 80, 64, 160 * s / 100, 6);
   rect(g, Math.round(W / 2 - 80 + 160 * HUNT_WARN / 100) - 1, 60, 2, 14, '#a01818');   // exorcist threshold tick
   label(g, 'SUSPICION', W / 2 - 86, 70, 10, '#95a493', 'right');
-  if (threat.hunter) label(g, 'THE EXORCIST ' + threat.hunter.scares + '/3', W / 2, 92, 12, '#a01818', 'center');
+  if (threat.hunter) label(g, 'EXORCIST ' + threat.hunter.scares + '/3: different tricks in his room break him', W / 2, 92, 12, '#e0201f', 'center');
   if (threat.zeroT > 0 && game.energy < 10) label(g, 'fading... ' + Math.ceil(FADE_T - threat.zeroT), W / 2, 112, 16, '#c0181c', 'center');
   // diary
   if (threat.showObj) {
@@ -549,21 +575,27 @@ function drawThreatHUD(g) {
   }
 }
 
-// task / unlock banners: big, centred, bright (drawn after post-fx so the grade can't dull them)
+// one banner at a time in a strip just under the top HUD band, clear of the play area
+// (drawn after post-fx so the grade can't dull it); the lantern warning takes the strip while it burns
 function drawBanners(g) {
   if (!threat || threat.paused) return;
-  for (let i = 0; i < threat.banners.length; i++) {
-    const b = threat.banners[i];
-    const a = clamp(Math.min(b.t / 0.15, (BANNER_T - b.t) / 0.5), 0, 1);
-    const y = 200 + i * 84;
-    const w = Math.max(measurePixelText(b.text, fontScale(32)), measurePixelText(b.sub, fontScale(16))) + 64;
-    const x0 = Math.round((W / 2 - w / 2) / 4) * 4;
-    g.globalAlpha = a;
-    rect(g, x0, y - 34, w, 76, b.t < 0.25 ? '#f2d43a' : '#5e7262');   // gold flash, then the panel edge
-    rect(g, x0 + 4, y - 30, w - 8, 68, 'rgba(8,11,8,0.94)');
-    label(g, b.text, W / 2, y - 6, 32, '#f2d43a', 'center');
-    label(g, b.sub, W / 2, y + 24, 16, '#d2dcc6', 'center');
+  let b = threat.banners[0];
+  let a = 1;
+  if (threat.burnT > 0) {
+    b = { text: 'THE LANTERN IS BURNING YOU - FLEE!', sub: 'presence ' + Math.ceil(threat.presence) + ' - at 0 you are banished', t: globalT % 0.5, color: '#e0201f' };
+  } else if (b) {
+    const life = threat.banners.length > 1 ? BANNER_Q : BANNER_T;
+    a = clamp(Math.min(b.t / 0.15, (life - b.t) / 0.3), 0, 1);
   }
+  if (!b) return;
+  const y = HUD_BAND + 30;
+  const w = Math.max(measurePixelText(b.text, fontScale(24)), measurePixelText(b.sub, fontScale(12))) + 48;
+  const x0 = Math.round((W / 2 - w / 2) / 4) * 4;
+  g.globalAlpha = a;
+  rect(g, x0, y - 26, w, 56, b.t < 0.25 ? b.color : '#5e7262');   // colour flash, then the panel edge
+  rect(g, x0 + 4, y - 22, w - 8, 48, 'rgba(8,11,8,0.94)');
+  label(g, b.text, W / 2, y - 6, 24, b.color, 'center');
+  label(g, b.sub, W / 2, y + 16, 12, '#d2dcc6', 'center');
   g.globalAlpha = 1;
 }
 

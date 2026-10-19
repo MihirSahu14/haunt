@@ -204,6 +204,53 @@ run('ghost stays below the top HUD', function () {
   const y = vm.runInContext('ghost.y - camY', sandbox);
   if (!(y >= vm.runInContext('HUD_BAND', sandbox) + 40)) errors.push('ghost screen y ' + y + ' is inside the top HUD band');
 });
+run('banner queue', function () {
+  vm.runInContext('startGame(); banner("A", "a"); banner("B", "b"); banner("C", "c");', sandbox);
+  frames(60);
+  const a = vm.runInContext('threat.banners[0].text + threat.banners.length', sandbox);
+  frames(60);
+  const b = vm.runInContext('threat.banners[0].text + threat.banners.length', sandbox);
+  if (a + ',' + b !== 'A3,B2') errors.push('banner queue: got ' + a + ',' + b + ', want A3,B2 (one at a time, 1.8 s each while others wait)');
+});
+run('whisper miss and crowd refund', function () {
+  const r = vm.runInContext('(function () {' +
+    ' startGame(); threat.whisper = true; const k = roomById("kitchen");' +
+    ' ghost.x = k.x + k.w / 2; ghost.y = k.y + k.h / 2;' +
+    ' for (const m of family) { m.state = "idle"; m.x = 40; m.y = 1500; }' +                   // nobody in the kitchen
+    ' game.energy = 50; threat.whisperCool = 0; threatWhisper(); const miss = game.energy;' +
+    ' for (const m of family.slice(0, 2)) { m.x = k.x + k.w / 2; m.y = k.y + k.h - 5; m.fear = 0; }' +
+    ' game.energy = 50; threat.whisperCool = 0; threatWhisper();' +
+    ' return [miss, game.energy <= 50]; })()', sandbox);
+  if (String(r) !== '50,true') errors.push('whisper: got ' + r + ', want 50,true (a miss is free, crowd refund <= cost)');
+});
+run('x3 needs distinct tricks', function () {
+  const r = vm.runInContext('(function () {' +
+    ' startGame(); const d = family[0]; for (const m of family) if (m !== d) m.state = "gone";' +
+    ' const put = function (id) { const r = roomById(id); d.x = r.x + r.w / 2; d.y = r.y + r.h - 5; d.state = "idle"; d.fear = 0; };' +
+    ' const hit = function (o, t) { game.time = t; o.cool = 0; game.energy = 100; triggerObject(o); return game.combo; };' +
+    ' const ko = OBJECTS.filter(function (o) { return o.room === "kitchen"; });' +
+    ' const dp = OBJECTS.find(function (o) { return o.room === "dining" && o.type === "portrait"; });' +
+    ' put("kitchen"); const aba = [hit(ko[0], 10), hit(ko[1], 11), hit(ko[0], 12)];' +
+    ' put("kitchen"); const abc = [hit(ko[0], 20), hit(ko[1], 21)]; put("dining"); abc.push(hit(dp, 22));' +
+    ' return aba.concat(abc); })()', sandbox);
+  if (String(r) !== '1,2,1,1,2,3') errors.push('combo: got ' + r + ', want 1,2,1,1,2,3 (A-B-A restarts, A-B-C reaches x3)');
+});
+run('selection skips a seen trick', function () {
+  const r = vm.runInContext('(function () {' +
+    ' startGame(); const k = family[2]; const kr = roomById("kid"); k.x = kr.x + 60; k.y = kr.y + kr.h - 5; k.state = "idle"; k.habit = { lights: 1 };' +
+    ' const li = OBJECTS.find(function (o) { return o.room === "kid" && o.type === "lights"; });' +
+    ' ghost.x = li.x; ghost.y = li.y - li.h / 2;' +                                         // right on top of the seen lights
+    ' return nearestObject(kr).type; })()', sandbox);
+  if (r !== 'crib') errors.push('selection: got ' + r + ', want crib (the fresh trick, not the seen lights)');
+});
+run('flee task counts an earlier flee', function () {
+  const r = vm.runInContext('(function () {' +
+    ' startGame(); family[2].state = "gone"; const ob = threat.objectives;' +
+    ' ob[0].done = true; ob[1].done = true;' +
+    ' threatEvent({ kind: "scare", n: 2, combo: 1, room: "kitchen" });' +   // completes "two at once", "drive out" becomes active
+    ' return [ob[2].done, ob[5].done]; })()', sandbox);
+  if (String(r) !== 'true,true') errors.push('flee task: got ' + r + ', want true,true');
+});
 run('dawn', function () {
   vm.runInContext('if (typeof threat !== "undefined" && threat) { threat.clock = 1e6; }', sandbox);
   frames(120);

@@ -9,6 +9,7 @@ const UI_DIM = '#95a493';                         // dim text
 const UI_BLOOD = '#c0181c';                       // blood accent
 const UI_LAMP = '#dcc870';                        // dirty lamp yellow
 const UI_ARROW = '#f2d43a';                       // guidance arrow: loud yellow, must read as "the yellow arrow"
+const UI_EXO = '#e0201f';                         // exorcist arrow: loud red
 const photoCv = makeCanvas(28, 32);               // tiny portrait buffer
 const photoG = photoCv.getContext('2d');
 const titleCv = makeCanvas(320, 180);             // low-res house for title
@@ -130,7 +131,7 @@ function drawCostTag(g) {
   if (!o || o.cool > 0) return;
   const c = threatCost(o);
   const lit = threat && threat.lights && roomIsLit(o.room);
-  const s = 'E ' + c + ' ecto' + (lit ? ' (lit x1.5)' : '');
+  const s = 'E ' + c + ' ecto' + (lit ? ' (lit x1.5)' : '') + (objSeen(o) ? ' - seen, weaker' : '');
   const y = Math.max(HUD_BAND + 12, o.y - o.h - 36 - camY);
   label(g, s, o.x - camX, y, 12, game.energy >= c ? UI_TEXT : UI_BLOOD, 'center');
 }
@@ -178,22 +179,23 @@ function hudOnScreen(wx, wy) {
   return sx > 0 && sx < W && sy > 0 && sy < H;
 }
 
-// is the current step's action done
-function onboardDone(step, held) {
-  const typed = ONBOARD_TEXT[step].length / 40;   // typing speed in drawOnboard
-  if (held < typed + 1) return false;             // never cut a line mid-sentence
+// has the player already done this step's action (null: read-only line)
+function onboardAct(step) {
   if (step === 1) return Math.hypot(ghost.x - onboard.sx, ghost.y - onboard.sy) > 160;
   if (step === 2) {
     const m = hudNearestMember();
     return m !== null && hudOnScreen(m.x, m.y - 60) && Math.hypot(m.x - ghost.x, m.y - 60 - ghost.y) < 520;
   }
-  if (step === 3) {
-    for (let i = 0; i < OBJECTS.length; i++) {
-      if (OBJECTS[i].cool > 0) return true;       // something got haunted
-    }
-    return false;
-  }
-  return held > typed + 4;                        // read-only lines stay 4 s once typed
+  if (step === 3) return onboard.haunted;
+  return null;
+}
+
+// is the current step's action done
+function onboardDone(step, held) {
+  const typed = ONBOARD_TEXT[step].length / 40;   // typing speed in drawOnboard
+  if (held < typed + 1) return false;             // never cut a line mid-sentence
+  const act = onboardAct(step);
+  return act === null ? held > typed + 4 : act;   // read-only lines stay 4 s once typed
 }
 
 // chunky pixel arrow on the screen edge toward a world point
@@ -233,12 +235,18 @@ function drawOnboard(g) {
   if (mode !== 'game' || !game) return;
   if (typeof threat !== 'undefined' && threat && threat.paused) return;   // pause overlay stays on top
   if (!onboard || onboard.game !== game) {
-    onboard = { game: game, step: 0, t0: game.time, sx: ghost.x, sy: ghost.y };
+    onboard = { game: game, step: 0, t0: game.time, sx: ghost.x, sy: ghost.y, last: game.time, haunted: false };
   }
+  for (let i = 0; i < OBJECTS.length; i++) if (OBJECTS[i].cool > 0) onboard.haunted = true;
+  // one hint at a time: while a one-time explanation is up, the tutorial / context slab waits (and its clock holds)
+  const hintUp = !!threat && threat.toasts.some(function (t) { return t.hint; });
+  if (hintUp) onboard.t0 += game.time - onboard.last;
+  onboard.last = game.time;
   const held = game.time - onboard.t0;
   if (onboard.step < ONBOARD_TEXT.length && onboardDone(onboard.step, held)) {
     onboard.step += 1;
     onboard.t0 = game.time;
+    while (onboard.step < ONBOARD_TEXT.length && onboardAct(onboard.step) === true) onboard.step += 1;   // skip steps already done
   }
   const step = onboard.step;
   // arrow to the nearest family member when nobody is in view or in the ghost's room (always on)
@@ -259,8 +267,11 @@ function drawOnboard(g) {
   // the front door during its prompt
   const dr = typeof DOOR !== 'undefined' ? DOOR : null;
   if (step === 0 && dr) hudArrows.push([dr.x, dr.y - 80, UI_BLOOD]);
-  // about to repeat a trick someone here has already seen: say so once, before the ecto is paid
-  if (gr && hudRepeat(gr)) tellOnce('repeat', 'They have seen this trick: it scares less. Pick another object.');
+  // the exorcist, whenever he is in the house (red, so it never reads as "follow me")
+  const h = threat && threat.hunter;
+  if (h && h.state !== 'flee') hudArrows.push([h.x, h.y - 60, UI_EXO]);
+  // repeat-trick warning lives on the cost tag of the selected object ("seen, weaker"), not in a toast
+  if (hintUp) return;
   if (step >= ONBOARD_TEXT.length) {
     drawContextHint(g);
     return;
@@ -368,14 +379,7 @@ function hudRoomPeople(room) {
 // would E on this room's selected object repeat a trick someone here has already seen
 function hudRepeat(room) {
   const o = nearestObject(room);
-  if (!o || o.cool > 0) return false;
-  for (let i = 0; i < family.length; i++) {
-    const m = family[i];
-    if (m.state === 'gone' || m.state === 'flee' || !m.habit || !m.habit[o.type]) continue;
-    const r = roomAt(m.x, m.y - 20);
-    if (r && r.id === room.id) return true;
-  }
-  return false;
+  return !!o && o.cool <= 0 && objSeen(o);
 }
 
 function contextHint() {

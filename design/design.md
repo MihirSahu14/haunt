@@ -46,8 +46,10 @@ Budget: 40 h (must total: 32 h)
 | scare_hold | - | scare_hold | 1 | 5 |
 | whisper_fear | - | whisper_fear | 0 | 16 |
 | whisper_cap | - | whisper_cap | 50 | 99 |
+| lantern_drain | - | lantern_drain | 4 | 25 |
+| exo_calm | - | exo_calm | 1 | 3 |
 
-Defaults: fear_base 19 (fear per fresh scare, `src/09-game.js`), fear_decay 0.5 (fear lost per second once calm: family courage, `src/09-game.js`), scare_hold 3 (seconds a landed scare roots the victim, `src/09-game.js`), night_len 180 (seconds to dawn, `src/10-threats.js`), hunt_warn 60 (suspicion that calls the exorcist, `src/10-threats.js`), whisper_fear 8 (fear per whisper, halved per repeat on one victim within 10 s, `src/10-threats.js`), whisper_cap 80 (whisper alone never lifts fear past this, `src/10-threats.js`).
+Defaults: fear_base 19 (fear per fresh scare, `src/09-game.js`), fear_decay 0.5 (fear lost per second once calm: family courage, `src/09-game.js`), scare_hold 3 (seconds a landed scare roots the victim, `src/09-game.js`), night_len 180 (seconds to dawn, `src/10-threats.js`), hunt_warn 60 (suspicion that calls the exorcist, `src/10-threats.js`), whisper_fear 8 (fear per whisper, halved per repeat on one victim within 10 s, `src/10-threats.js`), whisper_cap 80 (whisper alone never lifts fear past this, `src/10-threats.js`), lantern_drain 9 (presence lost per second inside the exorcist's lantern, `src/10-threats.js`), exo_calm 1.5 (family fear decays this many times faster while the exorcist is in the house, `src/09-game.js`).
 
 ## Decision
 Decision: 
