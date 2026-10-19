@@ -1,0 +1,35 @@
+{
+ "fear_base": {
+  "at": "2026-10-18T17:46:16",
+  "bot": "policy",
+  "values": {
+   "19.0": {
+    "label": "relative difficulty under policy bot",
+    "runs": 3,
+    "win_rate": 0.0,
+    "tto_p10": null,
+    "tto_p50": null,
+    "tto_p90": null,
+    "deaths_per_min": 0.0
+   },
+   "30.0": {
+    "label": "relative difficulty under policy bot",
+    "runs": 3,
+    "win_rate": 0.67,
+    "tto_p10": 37.43,
+    "tto_p50": 39.15,
+    "tto_p90": 40.87,
+    "deaths_per_min": 0.0
+   },
+   "45.0": {
+    "label": "relative difficulty under policy bot",
+    "runs": 3,
+    "win_rate": 1.0,
+    "tto_p10": 17.28,
+    "tto_p50": 22.0,
+    "tto_p90": 22.96,
+    "deaths_per_min": 0.0
+   }
+  }
+ }
+}

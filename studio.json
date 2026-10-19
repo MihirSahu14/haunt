@@ -1,0 +1,12 @@
+{
+ "context": "hobby",
+ "coding": 2,
+ "engine": "web",
+ "build_dir": ".",
+ "platforms": [
+  "itch"
+ ],
+ "hours_per_week": 10.0,
+ "weeks": 4.0,
+ "itch": "mihirsahu14/haunt"
+}

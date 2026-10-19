@@ -1,8 +1,8 @@
 "use strict";
 // suspicion, hunter, presence, night clock, objectives, game over (threats agent)
 let threat = null;
-const NIGHT_LEN = 300;            // real seconds from 11 PM to 5 AM
-const HUNT_WARN = 80;             // suspicion that sends for the exorcist
+const NIGHT_LEN = (window.__playbench?.overrides ?? {}).night_len ?? 300;    // real seconds from 11 PM to 5 AM (playbench knob: dawn length)
+const HUNT_WARN = (window.__playbench?.overrides ?? {}).hunt_warn ?? 80;     // suspicion that sends for the exorcist (playbench knob)
 const HUNT_DELAY = 8;             // seconds of warning before he walks in
 const TOAST_T = 3.2;
 const HUNT_STAY = 40;             // seconds he searches before giving up for now

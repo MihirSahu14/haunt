@@ -19,10 +19,10 @@ const door = { open: 0 };
 const keys = {};
 const SCARE_CD = 4;              // seconds per object
 const COMBO_T = typeof COMBO_WINDOW === 'number' ? COMBO_WINDOW : 3;   // combo window (matches HUD bar)
-const FEAR_BASE = 19;            // fear per fresh scare
+const FEAR_BASE = (window.__playbench?.overrides ?? {}).fear_base ?? 19;     // fear per fresh scare (playbench knob)
 const COMBO_MAX = 1.4;           // combo multiplier cap
 const JS_GAP = 20;
-const FEAR_DECAY = 0.5;          // fear lost per second once calm (x2 with company)
+const FEAR_DECAY = (window.__playbench?.overrides ?? {}).fear_decay ?? 0.5; // fear lost per second once calm (x2 with company) (playbench knob: family courage)
 const LONE_K = 0.05;             // extra fear per family member already gone
 const NERVE_T = 5;               // seconds a victim stays numb after a scare
 const NERVE_K = 0.4;             // fear multiplier while numb
