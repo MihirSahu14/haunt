@@ -32,7 +32,7 @@ const GHOST_SPD = 400;           // ghost speed
 const ECTO_REGEN = 1.5;          // passive ecto per second
 const ECTO_PER_FEAR = 0.5;       // ecto gained per fear inflicted
 const SCARE_HOLD = (window.__playbench?.overrides ?? {}).scare_hold ?? 3;   // seconds a landed scare roots the victim (playbench knob)
-const EXO_CALM = (window.__playbench?.overrides ?? {}).exo_calm ?? 1.5;   // fear decay multiplier while the exorcist is in the house: ignoring him costs (playbench knob; 2 cost the policy bot 4 of 15 nights)
+const EXO_CALM = (window.__playbench?.overrides ?? {}).exo_calm ?? 1;   // fear decay multiplier while the exorcist is in the house (playbench knob). 1 = off: 1.5 cut careful-bot wins 36/60 -> 26/60; revisit after a human playtest
 const GHOST_TOP = HUD_BAND + 48;  // highest ghost y: the sprite stays below the top HUD band
 function worldW() { return typeof WORLD_W !== 'undefined' ? WORLD_W : W; }
 function worldH() { return typeof WORLD_H !== 'undefined' ? WORLD_H : H; }
